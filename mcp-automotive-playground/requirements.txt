@@ -1,0 +1,2 @@
+# No required third-party dependencies for MCP server/client wiring in this repo.
+# Optional: install OpenAI SDK if you prefer SDK-based calls instead of built-in REST client.
