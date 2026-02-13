@@ -1,51 +1,66 @@
 # MCP Automotive Playground
 
-A hands-on starter project for demonstrating how AI can route requests to automotive microservices through the Model Context Protocol (MCP).
+A hands-on project showing both:
+- a deterministic scenario runner, and
+- a **real MCP server/client flow** with an LLM-backed tool-calling loop.
 
-## Goal
+## What is real vs mock here?
 
-Help an automotive team learn:
-- MCP fundamentals (tool registration, context exchange, routing)
-- How an agent decides which microservice to call
-- How real-time automotive logic can be composed across services
+- `src/services.py` is still mocked business data (safe for local learning).
+- `src/mcp_server.py` is a **real MCP server** exposing those services as MCP tools.
+- `src/llm_client.py` is a **real MCP client** that connects to the server and lets an LLM call tools.
 
-## Included microservices (modeled)
-
-1. Diagnostics
-2. Navigation
-3. Weather
-4. Maintenance
-5. Emergency
-6. Knowledge
-7. Vehicle Info
-
-This scaffold uses mocked service clients so the team can focus on orchestration design first, then swap in real MCP server calls.
+So the protocol/tool-calling loop is real MCP; the domain data source is demo data.
 
 ## Project structure
 
-- `src/orchestrator.py` — lightweight planner/router for demo scenarios
-- `src/services.py` — mocked service functions representing the 7 Informant services
-- `docs/scenarios.md` — scenario catalog and expected tool chains
+- `src/orchestrator.py` — deterministic demo scenarios (no LLM)
+- `src/services.py` — mocked automotive service functions
+- `src/mcp_server.py` — MCP tool server (stdio)
+- `src/llm_client.py` — MCP client + OpenAI tool-calling loop
+- `docs/scenarios.md` — scenario catalog
 
-## Quick start
+## Prerequisites
+
+- Python 3.10+
+- `pip`
+- OpenAI API key for LLM mode (`OPENAI_API_KEY`)
+
+Install dependencies:
+
+```bash
+cd mcp-automotive-playground
+python3 -m pip install -r requirements.txt
+```
+
+## 1) Run deterministic demo (no LLM)
 
 ```bash
 python3 src/orchestrator.py --scenario check_engine
-python3 src/orchestrator.py --scenario route_risk
-python3 src/orchestrator.py --scenario pre_trip
-python3 src/orchestrator.py --scenario safe_drive
 ```
 
-## Suggested next steps
+## 2) Verify MCP server/client wiring
 
-1. Replace mocks in `services.py` with real MCP client calls.
-2. Add trace logging for every tool call (service, reason, latency).
-3. Add policy guards (for emergency escalation and safe-driving constraints).
-4. Add a simple API/CLI UI for interactive prompts.
+This command starts the client, boots the MCP server over stdio, and lists discovered tools:
 
-## Training outcomes
+```bash
+python3 src/llm_client.py --list-tools
+```
 
-By the end of phase 1, team members should be able to:
-- Explain why the orchestrator selected each service.
-- Extend the workflow with a new automotive service.
-- Implement fallback behavior when one service is unavailable.
+## 3) Run real LLM-backed MCP flow
+
+```bash
+export OPENAI_API_KEY="your_key_here"
+python3 src/llm_client.py --prompt "My check engine light is on and I need to drive 50km. What should I do?"
+```
+
+Optional model override:
+
+```bash
+export OPENAI_MODEL="gpt-4o-mini"
+```
+
+## Notes
+
+- If `OPENAI_API_KEY` is missing, `llm_client.py --prompt ...` exits with a clear error.
+- Tool calls are chosen dynamically by the model via OpenAI function-calling + MCP `call_tool` execution.
